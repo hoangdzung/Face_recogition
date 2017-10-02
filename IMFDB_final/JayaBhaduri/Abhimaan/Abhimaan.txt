@@ -1,0 +1,14 @@
+clip8_Abhimaan_JayaBhaduri_Amitabh	006.jpg	JayaBhaduri_1.jpg	384	270	147	117	Abhimaan	2008	JayaBhaduri	FEMALE	NEUTRAL	NONE	MEDIUM	YOUNG	FRONTAL	PARTIAL
+clip8_Abhimaan_JayaBhaduri_Amitabh	080.jpg	JayaBhaduri_10.jpg	431	208	88	119	Abhimaan	2008	JayaBhaduri	FEMALE	NEUTRAL	NONE	MEDIUM	YOUNG	RIGHT	PARTIAL
+clip8_Abhimaan_JayaBhaduri_Amitabh	093.jpg	JayaBhaduri_13.jpg	358	206	43	51	Abhimaan	2008	JayaBhaduri	FEMALE	NEUTRAL	NONE	BAD	YOUNG	FRONTAL	PARTIAL
+clip8_Abhimaan_JayaBhaduri_Amitabh	094.jpg	JayaBhaduri_14.jpg	425	208	40	55	Abhimaan	2008	JayaBhaduri	FEMALE	NEUTRAL	NONE	MEDIUM	YOUNG	LEFT	PARTIAL
+clip8_Abhimaan_JayaBhaduri_Amitabh	098.jpg	JayaBhaduri_15.jpg	488	162	40	63	Abhimaan	2008	JayaBhaduri	FEMALE	NEUTRAL	NONE	BAD	YOUNG	RIGHT	PARTIAL
+clip8_Abhimaan_JayaBhaduri_Amitabh	107.jpg	JayaBhaduri_16.jpg	519	156	43	61	Abhimaan	2008	JayaBhaduri	FEMALE	NEUTRAL	NONE	BAD	YOUNG	LEFT	PARTIAL
+clip8_Abhimaan_JayaBhaduri_Amitabh	117.jpg	JayaBhaduri_18.jpg	208	124	90	150	Abhimaan	2008	JayaBhaduri	FEMALE	NEUTRAL	NONE	MEDIUM	YOUNG	FRONTAL	PARTIAL
+clip8_Abhimaan_JayaBhaduri_Amitabh	124.jpg	JayaBhaduri_19.jpg	210	115	111	164	Abhimaan	2008	JayaBhaduri	FEMALE	HAPPINESS	NONE	MEDIUM	YOUNG	FRONTAL	PARTIAL
+clip8_Abhimaan_JayaBhaduri_Amitabh	131.jpg	JayaBhaduri_21.jpg	210	99	113	169	Abhimaan	2008	JayaBhaduri	FEMALE	HAPPINESS	NONE	MEDIUM	YOUNG	FRONTAL	PARTIAL
+clip8_Abhimaan_JayaBhaduri_Amitabh	203.jpg	JayaBhaduri_22.jpg	231	123	153	202	Abhimaan	2008	JayaBhaduri	FEMALE	HAPPINESS	NONE	MEDIUM	YOUNG	FRONTAL	PARTIAL
+clip8_Abhimaan_JayaBhaduri_Amitabh	228.jpg	JayaBhaduri_24.jpg	259	119	138	210	Abhimaan	2008	JayaBhaduri	FEMALE	NEUTRAL	NONE	MEDIUM	YOUNG	LEFT	PARTIAL
+clip8_Abhimaan_JayaBhaduri_Amitabh	233.jpg	JayaBhaduri_25.jpg	385	239	191	240	Abhimaan	2008	JayaBhaduri	FEMALE	NEUTRAL	NONE	BAD	YOUNG	LEFT	PARTIAL
+clip8_Abhimaan_JayaBhaduri_Amitabh	023.jpg	JayaBhaduri_6.jpg	373	295	147	112	Abhimaan	2008	JayaBhaduri	FEMALE	NEUTRAL	HAND	MEDIUM	YOUNG	FRONTAL	PARTIAL
+clip8_Abhimaan_JayaBhaduri_Amitabh	064.jpg	JayaBhaduri_7.jpg	405	227	82	102	Abhimaan	2008	JayaBhaduri	FEMALE	DISGUST	NONE	MEDIUM	YOUNG	RIGHT	PARTIAL
