@@ -11,6 +11,7 @@ class Dataset():
         self.labels = tuple(os.listdir(self.folder))
         self._load_data()
         self.size = size 
+        self.n_classes = len(self.labels)
 
     def _load_data(self):
         self.path_list = []
@@ -35,44 +36,35 @@ class Dataset():
         self.train = self.path_list[:self.len_train]
         self.test = self.path_list[self.len_train:]
 
-    def next_batch(self, mode = 'train'):
+    def next_batch(self, mode = 'train', batch_size = None):
         idx = 0
         start = 0
         if mode == 'train':
-            np.random.shuffle(self.train)
-            while(idx < self.num_batch_train):
-                images_path = self.train[start : start + self.batch_size]
-                images = []
-                labels = []
-                for path in images_path:
-                    image = cv2.imread(path)
-                    image = cv2.resize(image, self.size)
-                    images.append(image)
-                    
-                    name = path.split('/')[-2]
-                    label = [1 if name == i else 0 for i in self.labels]
-                    labels.append(label)
-                idx += 1
-                start += self.batch_size
-                images = np.array(images)
-                labels = np.array(labels)
-                yield (images, labels)
-        
+            data = self.train
+            num_batch = self.num_batch_train
         elif mode == 'test':
-            while(idx < self.num_batch_test):
-                images_path = self.test[start : start + self.batch_size]
-                images = []
-                labels = []
-                for path in images_path:
-                    image = cv2.imread(path)
-                    image = cv2.resize(image, self.size)
-                    images.append(image)
-                    
-                    name = path.split('/')[-2]
-                    label = [1 if name == i else 0 for i in self.labels]
-                    labels.append(label)
-                idx += 1
-                start += self.batch_size
-                images = np.array(images)
-                labels = np.array(labels)
-                yield (images, labels)
+            data = self.test
+            num_batch = self.num_batch_test
+
+        if batch_size is None:
+            batch_size = self.batch_size
+
+        np.random.shuffle(data)
+        while(idx < num_batch):
+            images_path = data[start : start + batch_size]
+            images = []
+            labels = []
+            for path in images_path:
+                image = cv2.imread(path)
+                image = cv2.resize(image, self.size)
+                images.append(image)
+                
+                name = path.split('/')[-2]
+                label = [1 if name == i else 0 for i in self.labels]
+                labels.append(label)
+            idx += 1
+            start += batch_size
+            images = np.array(images)
+            labels = np.array(labels)
+            yield (images, labels)
+        

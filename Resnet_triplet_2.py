@@ -1,3 +1,10 @@
+"""
+    Structure of a batch: A batch includes 3 parts and has an attribute: n_triplet (int)
+    The first n_triplet images is anchor part.
+    The next n_triplet images is possitive part.
+    The last n_triplet images is negative part.
+"""
+
 from __future__ import print_function
 import tensorflow as tf
 import numpy as np 

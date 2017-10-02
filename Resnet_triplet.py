@@ -1,3 +1,8 @@
+"""
+    Generating a batch is random. (module: dataset)
+    For each image in a batch, using L2_distance to find hard pos and hard neg.
+"""
+
 from __future__ import print_function
 import tensorflow as tf
 import numpy as np 

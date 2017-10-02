@@ -1,3 +1,9 @@
+"""
+    Everytime sample a batch, pick "images_per_person" images per person. 
+    And we have "peope_per_batch" people per batch.
+"""
+
+
 import numpy as np 
 import cv2 
 import os 

@@ -1,3 +1,10 @@
+"""
+    Everytime sample a batch, choose randomly a class for anchor label.
+    Then, choose randomly possitive entities of the chosen class.
+    Next, choose randomly negative labels which is different from anchor label.
+    Finally, for each negative label, choose randomly an entity.
+"""
+
 import numpy as np 
 # import cv2 
 import os 

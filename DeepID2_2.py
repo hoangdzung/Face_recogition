@@ -1,11 +1,15 @@
+"""
+   DeepID2: Two seperate models with shared weights
+"""
+
 from __future__ import print_function
 import tensorflow as tf
 import numpy as np 
-# from dataset import Dataset
+from dataset import Dataset
 from fake_dataset import Fake_data
 import math
 import os
-# import cv2 
+import cv2 
 import sys
 import time
 
@@ -144,6 +148,7 @@ class Resnet():
         self.flatten = self._flatten_layer(self.conv4)      
         self.weight, self.bias, self.softmax = self._fully_connected_layer(self.flatten, self.n_classes, '1', 'softmax')
         self.check = tf.reduce_sum(self.softmax)
+
 class Model():
     def __init__(self, name, n_classes, alpha = 0.0, n_features = 160, input_shape = (55, 47, 3), learning_rate = 0.001, momentum = 0.9):
         """
@@ -213,7 +218,7 @@ def train(model, data = None, n_epoch = 100):
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         for epoch in range(n_epoch):
-            for x, y in data.next_batch_train():
+            for x, y in data.next_batch(mode = 'train'):
                 x1 = np.expand_dims(x[0],0)
                 x2 = np.expand_dims(x[1],0)
                 y1 = np.expand_dims(y[0],0)
@@ -222,14 +227,18 @@ def train(model, data = None, n_epoch = 100):
                 l_id1, l_id2, l_ver, _ = sess.run([model.loss_ident_1, model.loss_ident_2, model.loss_ver, model.train_op], feed_dict = feed_dict)
                 print(l_id1, l_id2, l_ver)
                 time.sleep(0.1)
-            x, y = data.next_batch_test(50)
-            acc = sess.run(model.accuracy, feed_dict = {model.model1.input_matrix: x, model.model1.label_one_hot: y})
-            print("acc: ", acc)
-            f = open('acc_deepid.txt', "a")
-            f.write(str(epoch) +":"+ str(acc)+'\n')
-            f.close()
+            accuracy = 0.0
+            for x, y in data.next_batch(mode = 'test', batch_size = 50):
+                acc = sess.run(model.accuracy, feed_dict = {model.model1.input_matrix: x, model.model1.label_one_hot: y})
+                accuracy += acc
+            print("acc: ", accuracy/data.num_batch_test)
+            # f = open('acc_deepid.txt', "a")
+            # f.write(str(epoch) +":"+ str(acc)+'\n')
+            # f.close()
+
 if __name__ == '__main__':
-    data = Fake_data(2,n_classes = 5, size = (55, 47))
+    n_epoch = int(sys.argv[1])
+    data = Dataset(2, n_classes = 5, size = (55, 47))
     model = Model(name = 'deepid2', n_classes = 5)
     model.build()
-    train(model, data, 10000)
+    train(model, data, n_epoch)
