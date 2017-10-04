@@ -9,7 +9,7 @@ import sys
 from Resnet import Resnet
 
 class Resnet_softmax(Resnet):
-    def __init__(self, name, input_shape, n_classes, momentum = 0.9, n_features = 4096, batch_size = 32, learning_rate = 1e-3):
+    def __init__(self, name, input_shape, n_classes, momentum = 0.9, n_features = 4096, batch_size = 32, learning_rate = 0.01):
         """
             name: string, name of model using for saving graph
             input_shape: tuple, shape of image
@@ -30,14 +30,14 @@ class Resnet_softmax(Resnet):
 
     def _create_loss(self):
         self.loss = tf.reduce_mean(-tf.reduce_sum(self.label_one_hot * tf.log(self.full3), reduction_indices=[1]))
-        
+        tf.summary.scalar("loss", self.loss)
     def _create_optimizer(self):
         self.optimizer = tf.train.MomentumOptimizer(self.learning_rate, self.momentum).minimize(self.loss, global_step = self.global_step)
 
     def _create_evaluater(self):
         correct = tf.equal(tf.argmax(self.full3, 1), tf.argmax(self.label_one_hot, 1))
         self.accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
-
+        tf.summary.scalar("accuracy", self.accuracy)
     def build(self):
         self._create_placeholder()
         self._build_model()
@@ -64,7 +64,7 @@ def train_model(model, n_epoch, data):
             total_loss = 0.0
             accuracy = 0.0
             for x_train, y_train in data.next_batch(mode = 'train'):
-                feed_dict = {model.input: x_train, model.output: y_train}
+                feed_dict = {model.input_matrix: x_train, model.label_one_hot: y_train}
                 loss, acc, Sum, _  = sess.run([model.loss, model.accuracy, model.merged_summary, model.optimizer], feed_dict = feed_dict)
                 accuracy += acc
                 total_loss += loss
@@ -78,7 +78,7 @@ def train_model(model, n_epoch, data):
             if epoch % 5 == 0:
                 accuracy = 0.0
                 for x_test, y_test in data.next_batch(mode = 'test'):
-                    feed_dict = {model.input: x_test, model.output: y_test}
+                    feed_dict = {model.input_matrix: x_test, model.label_one_hot: y_test}
                     # loss, _, summary  = sess.run([model.loss, model.optimizer, model.summary_op],
                     #                             feed_dict = feed_dict)
                     acc = sess.run(model.accuracy, feed_dict = feed_dict)
@@ -89,8 +89,9 @@ def main():
     size = int(sys.argv[1])
     n_epoch = int(sys.argv[2])
     # data = Dataset(batch_size = 32, folder = '/mnt/3TB-disk3/data/image-processing/face2/aligned_images_DB', size = (size, size))
-    data = Dataset(batch_size = 32, folder = '/home/dung/my_project/cele', size = (size, size))
-    model = Resnet(input_shape = (size, size, 3), n_classes = len(data.labels))
+    data = Dataset(batch_size = 32, folder = '../../sample', size = (size, size))
+    model = Resnet_softmax(name = 'resnet_softmax', input_shape = (size, size, 3), n_classes = len(data.labels))
+    model.build()
     train_model(model, n_epoch, data)
 
 if __name__ == '__main__':

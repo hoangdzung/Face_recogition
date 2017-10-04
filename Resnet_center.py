@@ -9,7 +9,7 @@ import sys
 from Resnet import Resnet
 
 class Resnet_center(Resnet):
-    def __init__(self, name, input_shape, n_classes, momentum = 0.9, n_features = 4096, batch_size = 32, learning_rate = 1e-3, lambda_ = 0.1):
+    def __init__(self, name, input_shape, n_classes, lambda_ = 0.001, momentum = 0.9, n_features = 4096, batch_size = 32, learning_rate = 0.01):
         """
             name: string, name of model using for saving graph
             input_shape: tuple, shape of image
@@ -20,6 +20,7 @@ class Resnet_center(Resnet):
             learning_rate: float, learning rate of opitmizer
             lambda_ : float, weight of center loss
         """
+        print("start")
         Resnet.__init__(self, name = name, 
                     input_shape = input_shape, 
                     n_classes = n_classes, 
@@ -92,7 +93,7 @@ def train_model(model, n_epoch, data):
         # print(ckpt)
         # if ckpt:
         #     saver.restore(sess, ckpt)
-        # model.writer.add_graph(sess.graph)
+        model.writer.add_graph(sess.graph)
         step = 1
         for epoch in range(n_epoch):
             batch = 0
@@ -140,8 +141,9 @@ def main():
     n_epoch = int(sys.argv[2])
     lambda_ = float(sys.argv[3])
     # data = Dataset(batch_size = 16, folder = '/home/dung/my_project/Pic', size = (size, size))
-    data = Dataset(batch_size = 32, folder = '/home/dung/my_project/cele', size = (size, size))
-    model = Resnet(input_shape = (size, size, 3), n_classes = len(data.labels), lambda_ = lambda_)
+    data = Dataset(batch_size = 32, folder = '/media/trungdunghoang/4022D29E22D297EC/sample', size = (size, size))
+    model = Resnet_center(name='resnet_center', input_shape = (size, size, 3), n_classes = len(data.labels), lambda_ = lambda_)
+    model.build()
     train_model(model, n_epoch, data)
 
 if __name__ == '__main__':

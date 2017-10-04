@@ -8,7 +8,7 @@ import cv2
 import sys
 
 class Resnet():
-    def __init__(self, name, input_shape, n_classes, n_features = 4096, batch_size = 32, learning_rate = 1e-3):
+    def __init__(self, name, input_shape, n_classes, n_features = 4096, batch_size = 32, learning_rate = 0.01):
         """
             name: string, name of model using for saving graph
             input_shape: tuple, size of image
@@ -18,6 +18,7 @@ class Resnet():
             learning_rate: float, learning rate of opitmizer
         
         """
+        print("resnet_init")
         self.name = name
         self.input_shape = input_shape
         self.n_classes = n_classes
@@ -60,9 +61,9 @@ class Resnet():
         layer += biases
         if use_relu:
             layer = tf.nn.relu(layer)
-        # tf.summary.histogram("weights", weights)
-        # tf.summary.histogram("biases", biases)
-        # tf.summary.histogram("layer", layer)
+        tf.summary.histogram("weights", weights)
+        tf.summary.histogram("biases", biases)
+        tf.summary.histogram("layer", layer)
         return layer
     
 
@@ -142,9 +143,9 @@ class Resnet():
             layer = tf.nn.relu(layer)
         if drop_rate != None:
             layer = tf.nn.dropout(layer, drop_rate)
-        # tf.summary.histogram("weights", weights)
-        # tf.summary.histogram("biases", biases)
-        # tf.summary.histogram("layer", layer)
+        tf.summary.histogram("weights", weights)
+        tf.summary.histogram("biases", biases)
+        tf.summary.histogram("layer", layer)
         return layer
 
     def _build_model(self):
@@ -183,7 +184,7 @@ class Resnet():
         self.embedding = tf.nn.l2_normalize(self.full2, 1)
         self.full3 = self._fully_connected_layer(self.full2, self.n_classes, 'softmax')
         self.merged_summary = tf.summary.merge_all()
-        self.writer = tf.summary.FileWriter("graph " + self.name)
+        self.writer = tf.summary.FileWriter("graph_" + self.name)
 
     def _create_loss(self):
         raise NotImplementedError
