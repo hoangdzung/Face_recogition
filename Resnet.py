@@ -149,42 +149,43 @@ class Resnet():
         return layer
 
     def _build_model(self):
-        self.input_padding = tf.pad(self.input_matrix, [[0, 0], [3, 3], [3, 3], [0, 0]])
-        
-        self.conv1 = self._conv2d(self.input_padding, filter_size = 7, n_filters = 64, strides = 2)
-        self.batch_norm1 = self._batch_norm(self.conv1)
-        self.activation1 = self._activation_relu(self.batch_norm1)
-        self.maxpooling1 = self._maxpooling2d_layer(self.activation1, size = 3, strides = 2)
+        with tf.device("/gpu:0"):
+            self.input_padding = tf.pad(self.input_matrix, [[0, 0], [3, 3], [3, 3], [0, 0]])
+            
+            self.conv1 = self._conv2d(self.input_padding, filter_size = 7, n_filters = 64, strides = 2)
+            self.batch_norm1 = self._batch_norm(self.conv1)
+            self.activation1 = self._activation_relu(self.batch_norm1)
+            self.maxpooling1 = self._maxpooling2d_layer(self.activation1, size = 3, strides = 2)
 
-        self.conv_block2 = self._conv_block(self.maxpooling1, kernel_size = 3, filters = [64, 64, 256], strides = 1)
-        self.identity_block2a = self._identity_block(self.conv_block2, kernel_size = 3, filters = [64, 64, 256])
-        self.identity_block2b = self._identity_block(self.identity_block2a, kernel_size = 3, filters = [64, 64, 256])
+            self.conv_block2 = self._conv_block(self.maxpooling1, kernel_size = 3, filters = [64, 64, 256], strides = 1)
+            self.identity_block2a = self._identity_block(self.conv_block2, kernel_size = 3, filters = [64, 64, 256])
+            self.identity_block2b = self._identity_block(self.identity_block2a, kernel_size = 3, filters = [64, 64, 256])
 
-        self.conv_block3 = self._conv_block(self.identity_block2b, kernel_size = 3, filters = [128, 128, 512], strides = 2)
-        self.identity_block3a = self._identity_block(self.conv_block3, kernel_size = 3, filters = [128, 128, 512])
-        self.identity_block3b = self._identity_block(self.identity_block3a, kernel_size = 3, filters = [128, 128, 512])
-        self.identity_block3c = self._identity_block(self.identity_block3b, kernel_size = 3, filters = [128, 128, 512])
+            self.conv_block3 = self._conv_block(self.identity_block2b, kernel_size = 3, filters = [128, 128, 512], strides = 2)
+            self.identity_block3a = self._identity_block(self.conv_block3, kernel_size = 3, filters = [128, 128, 512])
+            self.identity_block3b = self._identity_block(self.identity_block3a, kernel_size = 3, filters = [128, 128, 512])
+            self.identity_block3c = self._identity_block(self.identity_block3b, kernel_size = 3, filters = [128, 128, 512])
 
-        self.conv_block4 = self._conv_block(self.identity_block3c, kernel_size = 3, filters = [256, 256, 1024], strides = 2)
-        self.identity_block4a = self._identity_block(self.conv_block4, kernel_size = 3, filters = [256, 256, 1024])
-        self.identity_block4b = self._identity_block(self.identity_block4a, kernel_size = 3, filters = [256, 256, 1024])
-        self.identity_block4c = self._identity_block(self.identity_block4b, kernel_size = 3, filters = [256, 256, 1024])
-        self.identity_block4d = self._identity_block(self.identity_block4c, kernel_size = 3, filters = [256, 256, 1024])
-        self.identity_block4e = self._identity_block(self.identity_block4d, kernel_size = 3, filters = [256, 256, 1024])
+            self.conv_block4 = self._conv_block(self.identity_block3c, kernel_size = 3, filters = [256, 256, 1024], strides = 2)
+            self.identity_block4a = self._identity_block(self.conv_block4, kernel_size = 3, filters = [256, 256, 1024])
+            self.identity_block4b = self._identity_block(self.identity_block4a, kernel_size = 3, filters = [256, 256, 1024])
+            self.identity_block4c = self._identity_block(self.identity_block4b, kernel_size = 3, filters = [256, 256, 1024])
+            self.identity_block4d = self._identity_block(self.identity_block4c, kernel_size = 3, filters = [256, 256, 1024])
+            self.identity_block4e = self._identity_block(self.identity_block4d, kernel_size = 3, filters = [256, 256, 1024])
 
-        self.conv_block5 = self._conv_block(self.identity_block4e, kernel_size = 3, filters = [512, 512, 2048], strides = 2)
-        self.identity_block5a = self._identity_block(self.conv_block5, kernel_size = 3, filters = [512, 512, 2048])
-        self.identity_block5b = self._identity_block(self.identity_block5a, kernel_size = 3, filters = [512, 512, 2048])
+            self.conv_block5 = self._conv_block(self.identity_block4e, kernel_size = 3, filters = [512, 512, 2048], strides = 2)
+            self.identity_block5a = self._identity_block(self.conv_block5, kernel_size = 3, filters = [512, 512, 2048])
+            self.identity_block5b = self._identity_block(self.identity_block5a, kernel_size = 3, filters = [512, 512, 2048])
 
-        self.avg_pool = tf.nn.avg_pool(self.identity_block5b, ksize = [1, 3, 3, 1], strides = [1, 2, 2, 1], padding = 'VALID')
+            self.avg_pool = tf.nn.avg_pool(self.identity_block5b, ksize = [1, 3, 3, 1], strides = [1, 2, 2, 1], padding = 'VALID')
 
-        self.flatten = self._flatten_layer(self.avg_pool)
-        self.full1 = self._fully_connected_layer(self.flatten, 4096, 'relu', 0.5)
-        self.full2 = self._fully_connected_layer(self.full1, 4096, 'relu', 0.5)
-        self.embedding = tf.nn.l2_normalize(self.full2, 1)
-        self.full3 = self._fully_connected_layer(self.full2, self.n_classes, 'softmax')
-        self.merged_summary = tf.summary.merge_all()
-        self.writer = tf.summary.FileWriter("graph_" + self.name)
+            self.flatten = self._flatten_layer(self.avg_pool)
+            self.full1 = self._fully_connected_layer(self.flatten, 4096, 'relu', 0.5)
+            self.full2 = self._fully_connected_layer(self.full1, 4096, 'relu', 0.5)
+            self.embedding = tf.nn.l2_normalize(self.full2, 1)
+            self.full3 = self._fully_connected_layer(self.full2, self.n_classes, 'softmax')
+            #self.merged_summary = tf.summary.merge_all()
+            self.writer = tf.summary.FileWriter("graph_" + self.name)
 
     def _create_loss(self):
         raise NotImplementedError

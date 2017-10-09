@@ -29,10 +29,12 @@ class Resnet_softmax(Resnet):
         self.momentum = momentum
 
     def _create_loss(self):
-        self.loss = tf.reduce_mean(-tf.reduce_sum(self.label_one_hot * tf.log(self.full3), reduction_indices=[1]))
+        with tf.device("/gpu:0"):
+            self.loss = tf.reduce_mean(-tf.reduce_sum(self.label_one_hot * tf.log(self.full3), reduction_indices=[1]))
         tf.summary.scalar("loss", self.loss)
     def _create_optimizer(self):
-        self.optimizer = tf.train.MomentumOptimizer(self.learning_rate, self.momentum).minimize(self.loss, global_step = self.global_step)
+        with tf.device("/gpu:0"):
+            self.optimizer = tf.train.MomentumOptimizer(self.learning_rate, self.momentum).minimize(self.loss, global_step = self.global_step)
 
     def _create_evaluater(self):
         correct = tf.equal(tf.argmax(self.full3, 1), tf.argmax(self.label_one_hot, 1))
@@ -44,7 +46,7 @@ class Resnet_softmax(Resnet):
         self._create_loss()
         self._create_optimizer()
         self._create_evaluater()
-
+        self.merged_summary = tf.summary.merge_all()
 
 def train_model(model, n_epoch, data):
     # file_ckp = "checkpoints_" + model.name

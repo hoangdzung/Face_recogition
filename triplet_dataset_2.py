@@ -9,6 +9,7 @@ import cv2
 import os 
 import math
 import tensorflow as tf
+from concurrent.futures import ThreadPoolExecutor, wait
 
 class Dataset():
     def __init__(self, people_per_batch, images_per_person, folder, size = (224, 224)):
@@ -26,6 +27,7 @@ class Dataset():
         self.n_people_per_class_train = []
         self.path_dict_test = {}
         self.n_people_per_class_test = []
+
         for i, label in enumerate(self.labels):
             list_img_path = []
             for root, _, files in os.walk(os.path.join(self.folder, label)):
@@ -42,6 +44,12 @@ class Dataset():
         self.people_per_batch = min(self.people_per_batch, self.n_classes)
         self.batch_size = self.images_per_person * self.people_per_batch
         
+        self.len_train = sum(self.n_people_per_class_train)
+        self.len_test = sum(self.n_people_per_class_test)
+        
+        self.num_batch_train = int(math.ceil(self.len_train/self.batch_size))
+        self.num_batch_test = int(math.ceil(self.len_test/self.batch_size))
+
     @staticmethod
     def random_choice(m, n):
         """
@@ -53,7 +61,37 @@ class Dataset():
         choosen_label = all_label[:m]
         return choosen_label
 
-    def next_batch(self, mode = 'train'):
+    def next_batch_2(self, mode = 'train'):
+        if mode == 'train':
+            img_dict = self.path_dict_train
+            n_people_per_class = self.n_people_per_class_train
+            num_batch = self.num_batch_train
+        elif mode == 'test':
+            img_dict = self.path_dict_test
+            n_people_per_class = self.n_people_per_class_test
+            num_batch = self.num_batch_test
+        idx = 0
+        while(idx < num_batch):
+            anchor_class_ = self.random_choice(self.people_per_batch, self.n_classes)
+            anchor_sample_idx = [self.random_choice(self.images_per_person, n_people_per_class[i]) for i in anchor_class_]
+            images = []
+            labels = []
+
+            for class_, idx in zip(anchor_class_, anchor_sample_idx):
+                for i in idx:
+                    image = cv2.imread(img_dict[class_][i])
+                    image = cv2.resize(image, self.size)
+                    images.append(image)
+                    label = np.zeros(self.n_classes)
+                    label[class_] = 1
+                    labels.append(label)
+
+            images = np.array(images)
+            labels = np.array(labels)
+            idx += 1
+            yield (images, labels)
+
+    def prepare_data(self, mode = 'train'):
         if mode == 'train':
             img_dict = self.path_dict_train
             n_people_per_class = self.n_people_per_class_train
@@ -61,21 +99,43 @@ class Dataset():
             img_dict = self.path_dict_test
             n_people_per_class = self.n_people_per_class_test
 
-        while(True):
-            anchor_class_ = self.random_choice(self.people_per_batch, self.n_classes)
-            anchor_sample_idx = [self.random_choice(self.images_per_person, n_people_per_class) for i in anchor_class_]
-            
-            images = []
-            labels = []
+        anchor_class_ = self.random_choice(self.people_per_batch, self.n_classes)
+        anchor_sample_idx = [self.random_choice(self.images_per_person, n_people_per_class[i]) for i in anchor_class_]
+        images = []
+        labels = []
 
-            for class_, idx in zip(anchor_class_, anchor_sample_idx):
-                image = cv2.imread(img_dict[class_][idx])
+        for class_, idx in zip(anchor_class_, anchor_sample_idx):
+            for i in idx:
+                image = cv2.imread(img_dict[class_][i])
                 image = cv2.resize(image, self.size)
                 images.append(image)
                 label = np.zeros(self.n_classes)
                 label[class_] = 1
                 labels.append(label)
 
-            images = np.array(images)
-            labels = np.array(labels)
-            yield (images, labels)
+        images = np.array(images)
+        labels = np.array(labels)
+        return (images, labels)
+
+    def next_batch(self, mode = 'train'):
+        if mode == 'train':
+            num_batch = self.num_batch_train
+        elif mode == 'test':
+            num_batch = self.num_batch_test
+        idx = 0
+        start = 0
+        pool = ThreadPoolExecutor(1)
+        future = pool.submit(self.prepare_data)
+        start += self.batch_size
+        while(idx < num_batch - 1):
+            wait([future])
+            minibatch = future.result()
+            # While the current minibatch is being consumed, prepare the next
+            future = pool.submit(self.prepare_data, mode = mode)
+            yield minibatch
+            idx += 1
+            start += self.batch_size
+        # Wait on the last minibatch
+        wait([future])
+        minibatch = future.result()
+        yield minibatch

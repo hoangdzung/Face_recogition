@@ -1,12 +1,8 @@
-"""
-   DeepID2: Two seperate models with shared weights
-"""
-
 from __future__ import print_function
 import tensorflow as tf
 import numpy as np 
 from dataset import Dataset
-from fake_dataset import Fake_data
+# from fake_dataset import Fake_data
 import math
 import os
 import cv2 
@@ -65,6 +61,10 @@ class Resnet():
         layer += bias
         if use_relu:
             layer = tf.nn.relu(layer, "relu")
+        
+        tf.summary.histogram("weight", weight)
+        tf.summary.histogram("bias", bias)
+        tf.summary.histogram("layer", layer)
         return layer
     
     def _local_conv2d(self, input, filter_size, n_filters, strides, block, padding = 'VALID'):
@@ -88,7 +88,10 @@ class Resnet():
 
         layer = tf.multiply(weight_, image_patches_)
         layer = tf.reduce_sum(layer, axis=3) + bias
-
+        
+        tf.summary.histogram("weight", weight)
+        tf.summary.histogram("bias", bias)
+        tf.summary.histogram("layer", layer)
         return layer
 
     def _maxpooling2d_layer(self, input, size, strides, block):
@@ -129,6 +132,11 @@ class Resnet():
             layer = tf.nn.relu(layer, name = 'relu')
         if drop_rate != None:
             layer = tf.nn.dropout(layer, drop_rate, name ='dropout')
+        
+        tf.summary.histogram("weight", weight)
+        tf.summary.histogram("bias", bias)
+        tf.summary.histogram("layer", layer)
+
         return weight, bias, layer
 
     def _build_model(self):
@@ -150,7 +158,7 @@ class Resnet():
         self.check = tf.reduce_sum(self.softmax)
 
 class Model():
-    def __init__(self, name, n_classes, alpha = 0.0, n_features = 160, input_shape = (55, 47, 3), learning_rate = 0.001, momentum = 0.9):
+    def __init__(self, name, n_classes, alpha = 0.0, n_features = 160, input_shape = (55, 47, 3), learning_rate = 0.01, momentum = 0.9):
         """
             name: string, name of model using for saving graph
             input_shape: tuple, size of image
@@ -173,11 +181,14 @@ class Model():
         self.model1.build()
         self.model2 = Resnet('model2', n_classes = n_classes, n_features = n_features, input_shape = input_shape, reuse = True)
         self.model2.build()
-    
+        self.writer = tf.summary.FileWriter("graph_" + self.name)
+
     def build(self):
         self._create_loss()
         self._create_optimizer()
         self._create_evaluater()
+        self.merged_summary = tf.summary.merge_all()
+
     def _create_loss(self):
         with tf.variable_scope("loss"):
             self.loss_ident_1 = tf.reduce_mean(-tf.reduce_sum(self.model1.label_one_hot * tf.log(self.model1.softmax), reduction_indices=[1]), name = "loss_id_1")
@@ -190,6 +201,9 @@ class Model():
                 self.loss_ver = tf.maximum(0.0, self.margin - L2_norm)
             
             tf.identity(self.loss_ver, name= "loss_verify")
+        tf.summary.scalar("loss_id_1", self.loss_ident_1)
+        tf.summary.scalar("loss_id_2", self.loss_ident_2)
+        tf.summary.scalar("loss_ve", self.loss_ver)
 
     def _create_optimizer(self):
         # self.optimizer = tf.train.MomentumOptimizer(self.learning_rate, self.momentum)
@@ -212,21 +226,40 @@ class Model():
     def _create_evaluater(self):
         correct = tf.equal(tf.argmax(self.model1.softmax, 1), tf.argmax(self.model1.label_one_hot, 1))
         self.accuracy = tf.reduce_mean(tf.cast(correct, 'float'))        
-
+        tf.summary.scalar("accuracy", self.accuracy)
 
 def train(model, data = None, n_epoch = 100):
-    with tf.Session() as sess:
+    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
         sess.run(tf.global_variables_initializer())
+        model.writer.add_graph(sess.graph)
+        step = 1
+
         for epoch in range(n_epoch):
+            batch = 0
+            loss_id_1 = 0.0
+            loss_id_2 = 0.0
+            loss_ve = 0.0
             for x, y in data.next_batch(mode = 'train'):
                 x1 = np.expand_dims(x[0],0)
                 x2 = np.expand_dims(x[1],0)
                 y1 = np.expand_dims(y[0],0)
                 y2 = np.expand_dims(y[1],0)
+                
                 feed_dict = {model.model1.input_matrix: x1, model.model1.label_one_hot: y1, model.model2.input_matrix: x1, model.model2.label_one_hot: y2}
-                l_id1, l_id2, l_ver, _ = sess.run([model.loss_ident_1, model.loss_ident_2, model.loss_ver, model.train_op], feed_dict = feed_dict)
-                print(l_id1, l_id2, l_ver)
-                time.sleep(0.1)
+                
+                l_id1, l_id2, l_ver, _, Sum = sess.run([model.loss_ident_1, model.loss_ident_2, model.loss_ver, model.train_op, model.merged_summary], feed_dict = feed_dict)
+                
+                model.writer.add_summary(Sum, step)
+                loss_id_1 += l_id1
+                loss_id_2 += l_id2
+                loss_ve += l_ver
+                
+                batch += 1
+                step += 1
+                print("{}/{}:l_id1 {}, l_id2 {}, l_ver {}".format(batch, data.num_batch_train, l_id1, l_id2, l_ver))
+            
+            print("Epoch {} : l_id1 {}, l_id2 {}, l_ve {}".format(epoch, loss_id_1, loss_id_2, loss_ve))
+            
             accuracy = 0.0
             for x, y in data.next_batch(mode = 'test', batch_size = 50):
                 acc = sess.run(model.accuracy, feed_dict = {model.model1.input_matrix: x, model.model1.label_one_hot: y})
@@ -238,7 +271,10 @@ def train(model, data = None, n_epoch = 100):
 
 if __name__ == '__main__':
     n_epoch = int(sys.argv[1])
-    data = Dataset(2, n_classes = 5, size = (55, 47))
-    model = Model(name = 'deepid2', n_classes = 5)
+    size = int(sys.argv[2])
+    alpha = float(sys.argv[3])
+
+    data = Dataset(batch_size = 2, folder = '../../sample', size = (size, size))
+    model = Model(name = 'deepid2', n_classes = data.n_classes, alpha = alpha, n_features = 160, input_shape = (size, size, 3))
     model.build()
     train(model, data, n_epoch)

@@ -3,6 +3,9 @@ import cv2
 import os 
 import math
 import tensorflow as tf
+from concurrent.futures import ThreadPoolExecutor, wait
+import time
+from threading import Thread
 
 class Dataset():
     def __init__(self, batch_size, folder, size = (250, 250)):
@@ -36,7 +39,7 @@ class Dataset():
         self.train = self.path_list[:self.len_train]
         self.test = self.path_list[self.len_train:]
 
-    def next_batch(self, mode = 'train', batch_size = None):
+    def next_batch_2(self, mode = 'train', batch_size = None):
         idx = 0
         start = 0
         if mode == 'train':
@@ -48,7 +51,9 @@ class Dataset():
 
         if batch_size is None:
             batch_size = self.batch_size
-
+        else:
+            num_batch = int(math.ceil((float)(len(data))/batch_size))
+        
         np.random.shuffle(data)
         while(idx < num_batch):
             images_path = data[start : start + batch_size]
@@ -67,4 +72,51 @@ class Dataset():
             images = np.array(images)
             labels = np.array(labels)
             yield (images, labels)
-        
+    
+    def prepare_data(self, images_path):
+        images = []
+        labels = []
+        for path in images_path:
+            image = cv2.imread(path)
+            image = cv2.resize(image, self.size)
+            images.append(image)
+            
+            name = path.split('/')[-3]
+            label = [1 if name == i else 0 for i in self.labels]
+            labels.append(label)
+
+        images = np.array(images)
+        labels = np.array(labels)
+        return (images, labels)
+
+    def next_batch(self, mode = 'train', batch_size = None):
+        if mode == 'train':
+            data = self.train
+            num_batch = self.num_batch_train
+        elif mode == 'test':
+            data = self.test
+            num_batch = self.num_batch_test
+
+        if batch_size is None:
+            batch_size = self.batch_size
+        else:
+            num_batch = int(math.ceil((float)(len(data))/batch_size))
+
+        np.random.shuffle(data)
+        idx = 0
+        start = 0
+        pool = ThreadPoolExecutor(1)
+        future = pool.submit(self.prepare_data, data[start:start+batch_size])
+        start += batch_size
+        while(idx < num_batch - 1):
+            wait([future])
+            minibatch = future.result()
+            # While the current minibatch is being consumed, prepare the next
+            future = pool.submit(self.prepare_data, data[start:start+batch_size])
+            yield minibatch
+            idx += 1
+            start += batch_size
+        # Wait on the last minibatch
+        wait([future])
+        minibatch = future.result()
+        yield minibatch

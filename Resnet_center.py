@@ -30,28 +30,21 @@ class Resnet_center(Resnet):
         self.momentum = momentum
         self.lambda_ = lambda_
 
-    def __init__(self, input_shape, n_classes, n_features = 4096, lambda_ = 0.1, learning_rate = 0.01):
-        self.input_shape = input_shape
-        self.n_classes = n_classes
-        self.n_features = n_features
-        self.lambda_ = lambda_
-        self.learning_rate = learning_rate
-        self.global_step = tf.Variable(0, dtype = tf.float32, trainable = False, name = "global_step")   
-
     def _create_loss(self):
-        self.centers = tf.get_variable(name = 'center', shape = [self.n_classes, self.n_features],
-                                    initializer = tf.constant_initializer(0.0), trainable = False)
+        with tf.device("/gpu:0"):
+            self.centers = tf.get_variable(name = 'center', shape = [self.n_classes, self.n_features],
+                                        initializer = tf.constant_initializer(0.0), trainable = False)
+            
+            self.label = tf.argmax(self.label_one_hot, axis = 1)
+            
+            self.center_matrix = tf.gather(self.centers, self.label)
+            self.diff = self.center_matrix - self.full2
+            self.center_loss = tf.nn.l2_loss(self.diff)
+            
+            self.softmax_loss = tf.reduce_mean(-tf.reduce_sum(self.label_one_hot * tf.log(self.full3), reduction_indices=[1]))
         
-        self.label = tf.argmax(self.label_one_hot, axis = 1)
-        
-        self.center_matrix = tf.gather(self.centers, self.label)
-        self.diff = self.center_matrix - self.full2
-        self.center_loss = tf.nn.l2_loss(self.diff)
-        
-        self.softmax_loss = tf.reduce_mean(-tf.reduce_sum(self.label_one_hot * tf.log(self.full3), reduction_indices=[1]))
-    
-        # self.lossL2 = tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables() if 'bias' not in v.name ]) * 0.001
-        self.loss = self.softmax_loss + self.lambda_ * self.center_loss
+            # self.lossL2 = tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables() if 'bias' not in v.name ]) * 0.001
+            self.loss = self.softmax_loss + self.lambda_ * self.center_loss
     
         tf.summary.scalar("center_loss", self.center_loss)
         tf.summary.scalar("softmax_loss", self.softmax_loss)
@@ -67,11 +60,13 @@ class Resnet_center(Resnet):
         self.centers_update_op = tf.scatter_sub(self.centers, self.label, self.update)
 
     def _create_optimizer(self):
-        self.optimizer = tf.train.MomentumOptimizer(self.learning_rate, self.momentum).minimize(self.loss, global_step = self.global_step)
+        with tf.device("/gpu:0"):
+            self.optimizer = tf.train.MomentumOptimizer(self.learning_rate, self.momentum).minimize(self.loss, global_step = self.global_step)
 
     def _create_evaluater(self):
-        correct = tf.equal(tf.argmax(self.full3, 1), tf.argmax(self.label_one_hot, 1))
-        self.accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
+        with tf.device("/gpu:0"):
+            correct = tf.equal(tf.argmax(self.full3, 1), tf.argmax(self.label_one_hot, 1))
+            self.accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
         tf.summary.scalar('accuracy', self.accuracy)
 
     def build(self):
@@ -81,7 +76,7 @@ class Resnet_center(Resnet):
         self._create_update_center_op()
         self._create_optimizer()
         self._create_evaluater() 
-
+        self.merged_summary = tf.summary.merge_all()
 def train_model(model, n_epoch, data):
     # file_ckp = "checkpoints_" + model.name
     # saver = tf.train.Saver()
@@ -127,7 +122,7 @@ def train_model(model, n_epoch, data):
 
             print("Epoch {}: c_loss {}, s_loss {}, acc:{}".format(epoch, total_c_loss, total_s_loss, accuracy/data.num_batch_train))
     
-            saver.save(sess, 'checkpoints/check_points', global_step = model.global_step, write_meta_graph=False)
+            # saver.save(sess, 'checkpoints/check_points', global_step = model.global_step, write_meta_graph=False)
             if epoch % 1 == 0:
                 accuracy = 0.0
                 for x_test, y_test in data.next_batch(mode = 'test'):
