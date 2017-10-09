@@ -1,7 +1,3 @@
-"""
-    DeepID2: A model, then split output to 2 parts, corresponding to each face
-"""
-
 from __future__ import print_function
 import tensorflow as tf
 import numpy as np 
